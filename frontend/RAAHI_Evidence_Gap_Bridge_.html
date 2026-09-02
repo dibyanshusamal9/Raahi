@@ -43,8 +43,21 @@
   .navlinks a .h{font-size:14px;font-weight:700}
   .navlinks a .e{font-size:10px;opacity:.8}
   nav.solid .navlinks a{color:var(--ink)}
-  .navlinks a:hover{color:var(--gold)}
-  @media(max-width:760px){.navlinks{display:none}}
+  .navlinks a:hover, .navlinks a.active{color:var(--gold)}
+  .menu-toggle { display: none; font-size: 26px; color: #fff; cursor: pointer; transition: .35s; user-select: none; }
+  nav.solid .menu-toggle { color: var(--ink); }
+  @media(max-width:760px){
+    .menu-toggle { display: block; }
+    .navlinks {
+      position: absolute; top: 66px; left: 0; right: 0;
+      background: rgba(251,246,236,.96); backdrop-filter: blur(10px);
+      flex-direction: column; padding: 20px 26px; gap: 20px;
+      box-shadow: 0 10px 20px rgba(60,45,20,.1);
+      display: none;
+    }
+    .navlinks.open { display: flex; }
+    .navlinks a { color: var(--ink); }
+  }
 
   /* ---------- HERO ---------- */
   .hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;overflow:hidden}
@@ -242,12 +255,14 @@
 <div class="app">
 <nav id="nav"><div class="wrap">
   <div class="brand"><span class="l dev">राही</span><span class="s">RAAHI · Rural AI Advisor</span></div>
-  <div class="navlinks">
-    <a href="#facts"><span class="h dev">आँकड़े</span><span class="e">The facts</span></a>
-    <a href="#gap"><span class="h dev">अंतर</span><span class="e">The gap</span></a>
-    <a href="#bridge"><span class="h dev">समाधान</span><span class="e">The bridge</span></a>
-    <a href="#sources"><span class="h dev">स्रोत</span><span class="e">Sources</span></a>
+  
+  <div class="menu-toggle" id="mobile-menu-btn">☰</div>
+  <div class="navlinks" id="nav-links">
+    <a href="RAAHI_About_Mission_Vision.html"><span class="h dev">राही के बारे में</span><span class="e">About RAAHI</span></a>
+    <a href="RAAHI_Evidence_Gap_Bridge_.html" class="active"><span class="h dev">राही कैसे मदद करता है</span><span class="e">How RAAHI helps</span></a>
+    <a href="RAAHI_Success_Stories_Illustrated.html"><span class="h dev">सफलता की कहानियाँ</span><span class="e">Success stories</span></a>
   </div>
+
 </div></nav>
 
 <!-- ================= HERO ================= -->
@@ -484,6 +499,18 @@ document.addEventListener("DOMContentLoaded", function() {
     
     const hero = document.querySelector('.hero');
     if (hero) observer.observe(hero);
+  }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const btn = document.getElementById("mobile-menu-btn");
+  const links = document.getElementById("nav-links");
+  if(btn && links) {
+    btn.addEventListener("click", () => {
+      links.classList.toggle("open");
+    });
   }
 });
 </script>
