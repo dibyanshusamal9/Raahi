@@ -38,6 +38,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="/css/navbar.css" />
+      </head>
       <body className={`${baloo.variable} ${hind.variable} ${yatraOne.variable} ${besley.variable}`}>
         <Navbar />
         <div className="noise-overlay" />
