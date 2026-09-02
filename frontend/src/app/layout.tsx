@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Baloo_2, Hind, Yatra_One, Besley } from "next/font/google";
+import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 const baloo = Baloo_2({
@@ -38,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${baloo.variable} ${hind.variable} ${yatraOne.variable} ${besley.variable}`}>
+        <Navbar />
         <div className="noise-overlay" />
         {children}
       </body>
