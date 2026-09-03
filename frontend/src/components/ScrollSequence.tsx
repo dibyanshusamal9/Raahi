@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { PhoneCall } from "lucide-react";
+import CallExperience from "./CallExperience";
 
 const FRAME_COUNT = 100;
 
@@ -12,6 +13,7 @@ export default function ScrollSequence() {
   const [images, setImages] = useState<HTMLImageElement[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [isCallActive, setIsCallActive] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -20,6 +22,16 @@ export default function ScrollSequence() {
 
   // Load images
   useEffect(() => {
+    // Check if URL has ?call=true
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("call") === "true") {
+        setIsCallActive(true);
+        // Optional: clean up the URL without reloading
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     let loadedCount = 0;
     const loadedImages: HTMLImageElement[] = [];
 
@@ -186,8 +198,11 @@ export default function ScrollSequence() {
 
           {/* CONNECTED */}
           <motion.div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "flex-end", paddingRight: "5%", paddingBottom: "5%", opacity: connectedOpacity, y: connectedY }}>
-            <a 
-              href="tel:1800-000-0000"
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                setIsCallActive(true);
+              }}
               className="connected-btn"
               style={{
                 pointerEvents: "auto",
@@ -200,7 +215,8 @@ export default function ScrollSequence() {
                 boxShadow: "0 8px 30px rgba(232, 128, 31, 0.4)",
                 transition: "transform 0.2s, background-color 0.2s",
                 cursor: "pointer",
-                textDecoration: "none"
+                textDecoration: "none",
+                border: "none"
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px)";
@@ -216,10 +232,13 @@ export default function ScrollSequence() {
                 <span className="connected-btn-title" style={{ fontFamily: "var(--font-yatra-one)", lineHeight: 1, marginBottom: "0.25rem" }}>राही को मुफ्त कॉल करें</span>
                 <span className="connected-btn-sub" style={{ opacity: 0.9 }}>Call RAAHI toll-free — 1800-XXXXXXX</span>
               </div>
-            </a>
+            </button>
           </motion.div>
         </div>
       </div>
+      
+      {/* OVERLAY COMPONENT */}
+      <CallExperience isActive={isCallActive} onClose={() => setIsCallActive(false)} />
     </div>
   );
 }
