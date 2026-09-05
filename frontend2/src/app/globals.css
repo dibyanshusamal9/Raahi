@@ -1,0 +1,325 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Gujarati:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;600;700&family=Noto+Sans+Oriya:wght@400;600;700&family=Noto+Sans+Gurmukhi:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Sans+Telugu:wght@400;600;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap');
+
+:root {
+  --color-sky: #A9D8E6;
+  --color-field: #B7A63E;
+  --color-store: #E4D9BE;
+  --color-awning: #3E7CA6;
+  --color-motorcycle: #6E2A28;
+  --color-accent: #E8801F;
+
+  --font-baloo: 'Baloo 2', sans-serif;
+  --font-hind: 'Hind', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: clip;
+  background-color: #faf9f6; /* Soft neutral background for the page */
+  font-family: var(--font-hind);
+}
+
+h1, h2, h3, h4, h5, h6, .brand-font {
+  font-family: var(--font-baloo);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: var(--font-hind);
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-accent);
+  color: white;
+  padding: 1rem 2.5rem;
+  border-radius: 9999px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(217, 114, 11, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(217, 114, 11, 0.4);
+}
+
+/* --- Responsive Utility Classes --- */
+
+/* Typography */
+.text-fluid-hero { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -0.01em; }
+.text-fluid-subhero { font-size: clamp(1.2rem, 3vw, 1.8rem); line-height: 1.2; font-weight: 500; opacity: 0.9; }
+.text-fluid-body { font-size: clamp(1rem, 2vw, 1.25rem); line-height: 1.4; }
+.text-fluid-small { font-size: clamp(0.9rem, 1.5vw, 1rem); line-height: 1.5; opacity: 0.8; }
+.text-fluid-logo { font-size: clamp(2rem, 4vw, 3rem); line-height: 1; letter-spacing: -0.02em; }
+.text-fluid-nav { font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; }
+.text-fluid-nav-sub { font-size: clamp(0.75rem, 1vw, 0.85rem); opacity: 0.7; }
+
+/* Layout Containers */
+.nav-container {
+  padding: 1.5rem 3rem;
+}
+.nav-links {
+  display: flex;
+  gap: 2.5rem;
+}
+.mobile-menu-btn {
+  display: none;
+}
+
+/* Overlays */
+.overlay-container {
+  max-width: 600px;
+}
+.overlay-road {
+  left: 5%;
+}
+.overlay-discovery {
+  right: 5%;
+  text-align: right;
+}
+.connected-btn {
+  padding: 1.25rem 3rem;
+  font-size: 1.5rem;
+}
+.connected-btn-title {
+  font-size: 1.75rem;
+}
+.connected-btn-sub {
+  font-size: 1.1rem;
+}
+
+/* Media Queries for Mobile/Tablet Adaptation */
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 1rem 1.5rem;
+  }
+  .nav-links {
+    display: none;
+  }
+  .mobile-menu-btn {
+    display: block;
+    color: white;
+  }
+
+  .overlay-container {
+    max-width: 90%;
+    left: 5%;
+    right: 5%;
+  }
+  .overlay-road {
+    top: 50% !important; /* adjust centering for mobile */
+  }
+  .overlay-discovery {
+    text-align: left; /* Better readability on small screens */
+  }
+
+  .connected-btn {
+    padding: 1.25rem 2rem !important;
+    width: 100%;
+    justify-content: center;
+  }
+  .connected-btn-title {
+    font-size: 1.75rem !important;
+  }
+  .connected-btn-sub {
+    font-size: 1rem !important;
+  }
+}
+
+/* Visceral Texture */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* --- Call Experience Responsive Layout --- */
+.call-exp-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  max-height: 800px;
+  padding: 2rem;
+  gap: 4rem;
+}
+
+.call-panel-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  order: 1;
+}
+
+.call-panel-center {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  order: 2;
+}
+
+.call-panel-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  order: 3;
+}
+
+@media (max-width: 1024px) {
+  .call-exp-container {
+    gap: 2rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .call-exp-container {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 4rem 1rem 2rem 1rem;
+    gap: 2rem;
+  }
+  
+  .call-panel-center { order: 1; }
+  .call-panel-left { order: 2; width: 100%; }
+  .call-panel-right { order: 3; width: 100%; }
+  
+  /* Reset heights for mobile stacking */
+  .call-panel-left > div, .call-panel-right > div {
+    height: auto !important;
+  }
+}
+
+
+
+/* Language specific font mappings */
+.lang-bn, .lang-as, .lang-mni {
+  --font-hind: 'Noto Sans Bengali', sans-serif;
+  --font-baloo: 'Noto Sans Bengali', sans-serif;
+  --font-yatra-one: 'Noto Sans Bengali', sans-serif;
+}
+.lang-hi, .lang-brx, .lang-doi, .lang-gom, .lang-mai, .lang-mr, .lang-ne, .lang-sa, .lang-sat {
+  --font-hind: 'Noto Sans Devanagari', sans-serif;
+  --font-baloo: 'Noto Sans Devanagari', sans-serif;
+  --font-yatra-one: 'Noto Sans Devanagari', sans-serif;
+}
+.lang-gu {
+  --font-hind: 'Noto Sans Gujarati', sans-serif;
+  --font-baloo: 'Noto Sans Gujarati', sans-serif;
+  --font-yatra-one: 'Noto Sans Gujarati', sans-serif;
+}
+.lang-kn {
+  --font-hind: 'Noto Sans Kannada', sans-serif;
+  --font-baloo: 'Noto Sans Kannada', sans-serif;
+  --font-yatra-one: 'Noto Sans Kannada', sans-serif;
+}
+.lang-ml {
+  --font-hind: 'Noto Sans Malayalam', sans-serif;
+  --font-baloo: 'Noto Sans Malayalam', sans-serif;
+  --font-yatra-one: 'Noto Sans Malayalam', sans-serif;
+}
+.lang-or {
+  --font-hind: 'Noto Sans Oriya', sans-serif;
+  --font-baloo: 'Noto Sans Oriya', sans-serif;
+  --font-yatra-one: 'Noto Sans Oriya', sans-serif;
+}
+.lang-pa {
+  --font-hind: 'Noto Sans Gurmukhi', sans-serif;
+  --font-baloo: 'Noto Sans Gurmukhi', sans-serif;
+  --font-yatra-one: 'Noto Sans Gurmukhi', sans-serif;
+}
+.lang-ta {
+  --font-hind: 'Noto Sans Tamil', sans-serif;
+  --font-baloo: 'Noto Sans Tamil', sans-serif;
+  --font-yatra-one: 'Noto Sans Tamil', sans-serif;
+}
+.lang-te {
+  --font-hind: 'Noto Sans Telugu', sans-serif;
+  --font-baloo: 'Noto Sans Telugu', sans-serif;
+  --font-yatra-one: 'Noto Sans Telugu', sans-serif;
+}
+.lang-ur, .lang-ks, .lang-sd {
+  --font-hind: 'Noto Sans Arabic', sans-serif;
+  --font-baloo: 'Noto Sans Arabic', sans-serif;
+  --font-yatra-one: 'Noto Sans Arabic', sans-serif;
+}
+.dir-rtl {
+  direction: rtl;
+}
+.rtl-align {
+  text-align: right !important;
+}
+.dir-rtl .lang-btn {
+  flex-direction: row-reverse;
+}
+
+/* ============================================================
+   RAAHI STATIC PAGES — Language-invariant font & direction lock
+   The three integrated RAAHI pages (.raahi-static-page) must
+   NEVER be affected by global language-switching logic.
+   Font, direction, and layout are fixed here and cannot be
+   overridden by any .lang-* class or dir="rtl" from the navbar.
+   ============================================================ */
+
+.raahi-static-page,
+.raahi-static-page * {
+  direction: ltr !important;
+  unicode-bidi: embed !important;
+}
+
+/* Override language-specific font reassignments for static pages */
+.raahi-static-page {
+  font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif !important;
+}
+
+.raahi-static-page h1,
+.raahi-static-page h2,
+.raahi-static-page h3,
+.raahi-static-page h4,
+.raahi-static-page h5,
+.raahi-static-page h6 {
+  font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif !important;
+}
+
+/* Devanagari text within pages keeps its own font */
+.raahi-static-page .dev {
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif !important;
+}
+
+/* Prevent any lang-* class from the body/html from overriding font vars */
+.raahi-static-page {
+  --font-baloo: 'Manrope', system-ui, sans-serif;
+  --font-hind: 'Manrope', system-ui, sans-serif;
+}
+
