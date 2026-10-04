@@ -1,4 +1,4 @@
-# RAAHI — Rural AI Advisor for Household Income
+# RAAHI - Rural AI Advisor for Household Income
 
 A voice-first AI counsellor built for **Smart India Hackathon 2026**. A caller
 from a rural household phones RAAHI, answers a few questions in their own
