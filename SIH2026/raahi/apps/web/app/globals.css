@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --ink: #14112B;
+}
+
+html, body { background: var(--bg); color: var(--ink); }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* The particle wave behind the top of every page (components/wave-background.tsx),
+   with a soft lavender light under its crest, fading into the white page. */
+.wave-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 560px;
+  pointer-events: none;
+  background: radial-gradient(34% 30% at 72% 46%, rgba(237, 229, 255, 0.75) 0%, rgba(237, 229, 255, 0) 70%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+@media (min-width: 640px) {
+  .wave-bg { height: 680px; }
+}
+
+/* A soft white halo for text that sits over the wave: it hides the dots
+   right behind the letters without drawing a box. */
+.text-halo {
+  text-shadow: 0 0 2px #fff, 0 0 8px #fff, 0 0 16px #fff;
+}
+
+@layer base {
+  ::selection { background: #EDE5FF; color: #14112B; }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid #7C3AED;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+@layer components {
+  .card {
+    /* min-w-0: in a grid, long unbroken text must truncate, not widen the card */
+    @apply min-w-0 rounded-[20px] border border-line bg-white p-5 shadow-card;
+  }
+  a.card {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-lift
+           focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200;
+  }
+
+  /* Pills */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-white px-2.5 py-0.5
+           text-xs font-medium text-ink-soft;
+  }
+  .tag-pass   { @apply border-transparent bg-green-100 text-green-700; }
+  .tag-fail   { @apply border-transparent bg-red-100 text-red-700; }
+  .tag-unk    { @apply border-transparent bg-amber-100 text-amber-800; }
+  .tag-violet { @apply border-transparent bg-violet-100 text-violet-700; }
+
+  /* Small mono label above a heading: "• DISTRICT VIEW" */
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-white/80 px-2 py-1
+           font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.14em] text-ink-soft
+           shadow-sm backdrop-blur;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-1.5 w-1.5 rounded-full bg-violet-600;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2.5 rounded-full bg-violet-600 px-5 py-2.5
+           text-sm font-medium text-white shadow-glow transition hover:bg-violet-700
+           focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200
+           disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+  }
+  .btn-go { @apply py-1.5 pl-5 pr-1.5; }          /* primary with the arrow square */
+  .btn-arrow {
+    @apply grid h-7 w-7 place-items-center rounded-[9px] bg-white text-violet-700 transition-transform;
+  }
+  .btn-primary:hover .btn-arrow { @apply translate-x-px -translate-y-px; }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-line bg-white
+           px-3.5 py-1.5 text-sm font-medium text-ink-soft transition hover:border-violet-200
+           hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100
+           disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-full bg-red-600 px-3.5 py-1.5 text-sm
+           font-medium text-white transition hover:bg-red-700 focus-visible:outline-none
+           focus-visible:ring-4 focus-visible:ring-red-100 disabled:opacity-50;
+  }
+
+  /* Round ↗ in the corner of a linked card; fills violet when the card is hovered */
+  .arrow-btn {
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-white
+           text-ink-soft transition duration-200;
+  }
+  .group:hover .arrow-btn,
+  .group:focus-visible .arrow-btn {
+    @apply border-violet-600 bg-violet-600 text-white;
+  }
+
+  /* Form fields */
+  .label { @apply block text-sm font-medium text-ink; }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink
+           shadow-[0_1px_2px_rgba(20,17,43,.04)] transition placeholder:text-ink-faint
+           focus:border-violet-400 focus:outline-none focus:ring-4 focus:ring-violet-100
+           disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-faint;
+  }
+  select.field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%235B5872' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 14px;
+    padding-right: 2.5rem;
+  }
+
+  /* Bars: violet stripes on a light track; grey stripes for the rest of a chart */
+  .bar-track { @apply h-2.5 w-full overflow-hidden rounded-full bg-[#F1EFF7]; }
+  .bar-track-hatch {
+    background-image: repeating-linear-gradient(135deg, #ECEAF3 0 4px, #F7F6FB 4px 8px);
+  }
+  .bar-fill {
+    @apply h-full rounded-full;
+    background-image: repeating-linear-gradient(135deg, #7C3AED 0 6px, #9466FF 6px 12px);
+  }
+  .bar-grey {
+    @apply h-full rounded-full;
+    background-image: repeating-linear-gradient(135deg, #D6D2E4 0 4px, #E8E5F1 4px 8px);
+  }
+
+  /* Tables inside cards */
+  .table-head {
+    @apply border-b border-line bg-violet-50/70 text-left text-[11px] font-semibold uppercase
+           tracking-[0.08em] text-ink-soft;
+  }
+  .table-row { @apply border-t border-line/80 transition-colors hover:bg-violet-50/40; }
+}

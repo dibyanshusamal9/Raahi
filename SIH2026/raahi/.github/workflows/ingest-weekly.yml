@@ -1,0 +1,44 @@
+name: Official Dataset Refresh
+
+# Reload the Official India Data Pack whenever the workbook is updated in the
+# repo, or manually via the "Run workflow" button. The old weekly web-scraper
+# workflow has been removed — data/raw/raahi-official-dataset.xlsx is the sole
+# data source.
+on:
+  push:
+    paths:
+      - "data/raw/raahi-official-dataset.xlsx"
+  workflow_dispatch: {}
+
+jobs:
+  import-dataset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install pandas psycopg[binary] openpyxl python-dotenv pyarrow
+
+      - name: Apply pending DB migrations
+        run: python bootstrap_db.py --migrations-only
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Import Official India Data Pack
+        run: python -m ingesters.import_official_dataset
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {"text": "Official dataset import failed — https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_INGEST_WEBHOOK_URL }}
