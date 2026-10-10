@@ -10,18 +10,18 @@ calls, skills and job openings by district and to keep the openings up to date.
 
 | Path | What it is |
 |---|---|
-| [`SIH2026/raahi/apps/voice`](SIH2026/raahi/apps/voice) | Voice backend (FastAPI): speech-to-text, profile extraction, ranking, spoken replies |
-| [`SIH2026/raahi/apps/web`](SIH2026/raahi/apps/web) | Officer dashboard (Next.js 14): sign-in, overview, districts, job openings, beneficiaries |
-| [`SIH2026/raahi/apps/caller-site`](SIH2026/raahi/apps/caller-site) | Public RAAHI website with the web call (Next.js 16) |
-| [`SIH2026/raahi/db`](SIH2026/raahi/db) | PostgreSQL migrations and seed data |
-| [`SIH2026/raahi/data/raw`](SIH2026/raahi/data/raw) | Official India Data Pack (NQR qualifications and more) |
-| [`SIH2026/raahi/docs`](SIH2026/raahi/docs) | Architecture, the [SIH 2026 submission write-up](SIH2026/raahi/docs/sih-2026-submission.md) and the testing guide |
+| [`apps/voice`](apps/voice) | Voice backend (FastAPI): speech-to-text, profile extraction, ranking, spoken replies |
+| [`apps/web`](apps/web) | Officer dashboard (Next.js 14): sign-in, overview, districts, job openings, beneficiaries |
+| [`apps/caller-site`](apps/caller-site) | Public RAAHI website with the web call (Next.js 16) |
+| [`db`](db) | PostgreSQL migrations and seed data |
+| [`data/raw`](data/raw) | Official India Data Pack (NQR qualifications and more) |
+| [`docs`](docs) | Architecture, the [SIH 2026 submission write-up](docs/sih-2026-submission.md), the [setup guide](docs/setup.md) and the testing guide |
 | [`.github/workflows`](.github/workflows) | Re-imports the dataset into the database when the workbook changes |
 
 ## Run it locally
 
-You need Python 3.11, Node 24, pnpm and PostgreSQL 16 (or Docker). From
-`SIH2026/raahi`:
+You need Python 3.11, Node 24, pnpm and PostgreSQL 16 (or Docker). From the
+repository root:
 
 ```bash
 cp .env.example .env              # add your Sarvam and LLM keys; for a local
@@ -46,7 +46,7 @@ cd apps/caller-site && npm install && npx next dev -p 3001
 | Voice API docs | http://127.0.0.1:8000/docs |
 
 More detail, including a Supabase setup, is in
-[`SIH2026/raahi/README.md`](SIH2026/raahi/README.md).
+[`docs/setup.md`](docs/setup.md).
 
 ---
 

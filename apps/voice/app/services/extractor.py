@@ -334,6 +334,12 @@ _INTEREST_WORDS = {
     "बुनाई": "handloom", "विणकाम": "handloom", "बुनकर": "handloom",
     "বুনন": "handloom", "তাঁত": "handloom",
     "நெசவு": "handloom",
+    # textiles (mill trades) — often the English word in the caller's script
+    "textile": "textile", "spinning": "textile", "knitting": "textile", "dyeing": "textile",
+    "टेक्सटाइल": "textile", "टेक्स्टाइल": "textile", "टैक्सटाइल": "textile", "कताई": "textile",
+    "टेक्सटाईल": "textile", "वस्त्रोद्योग": "textile",
+    "টেক্সটাইল": "textile",
+    "டெக்ஸ்டைல்": "textile", "ஜவுளி": "textile",
     # telecom / mobile repair
     "mobile repair": "telecom", "phone repair": "telecom", "mobile": "telecom",
     "मोबाइल रिपेयर": "telecom", "मोबाईल दुरुस्ती": "telecom", "मोबाइल": "telecom",
@@ -366,6 +372,19 @@ _INTEREST_WORDS = {
     "সুতার": "construction", "রাজমিস্ত্রি": "construction",
     "கொத்தனார்": "construction",
 }
+def skill_words_in(text: str, vocabulary: list[str]) -> list[str]:
+    """The skill words from `vocabulary` that `text` contains as whole words
+    (a plural counts), longest first: "mobile repair" wins over "mobile", and
+    "it" never matches inside "with"."""
+    t = (text or "").lower()
+    found: list[str] = []
+    for word in sorted({w.lower().strip() for w in vocabulary}, key=len, reverse=True):
+        if word and re.search(rf"\b{re.escape(word)}(?:s|es)?\b", t) \
+                and not any(word in f for f in found):
+            found.append(word)
+    return found
+
+
 _CATEGORY_WORDS = {"sc": "SC", "st": "ST", "obc": "OBC", "gen": "GEN",
                    "general": "GEN", "अनुसूचित जाति": "SC", "अनुसूचित जनजाति": "ST"}
 

@@ -48,7 +48,9 @@ async def simulator_turn(inp: TurnIn) -> SimulatorTurnOut:
         elif b.get("self_employ_ok") is False:
             slots["PREFERENCE"] = "Salaried Job"
             
-    # 3. Generate TTS audio
+    # 3. Generate TTS audio. When the provider fails (e.g. Sarvam out of
+    # credits) synthesise() hands back a silent stand-in a browser can't play;
+    # send no audio then, so the call screen falls back to the device's voice.
     text_to_speak = out.composer_text or out.next_question
     audio_url = None
     if text_to_speak:
@@ -56,7 +58,8 @@ async def simulator_turn(inp: TurnIn) -> SimulatorTurnOut:
             path_or_url = await tts.synthesise(text_to_speak, inp.language)
             if path_or_url and path_or_url.startswith("file://"):
                 fname = path_or_url.split("/")[-1]
-                audio_url = f"/tts/{fname}"
+                if fname != tts.SILENT_FILE:
+                    audio_url = f"/tts/{fname}"
         except Exception as e:
             pass # fallback to no audio if TTS fails
             
@@ -81,6 +84,10 @@ async def simulator_stt(audio: UploadFile = File(...), language: str = Form("hi"
     browser's built-in recogniser hears many Indian languages as English."""
     data = await audio.read()
     if not data:
-        return {"text": "", "provider": "none"}
+        return {"text": "", "provider": "none", "available": True}
     result = await stt.transcribe(audio_bytes=data, audio_url=None, language=language)
-    return {"text": (result.get("text") or "").strip(), "provider": result.get("provider")}
+    # Provider "none" means every speech-to-text service failed (e.g. Sarvam
+    # out of credits), which the caller must hear about, not "didn't catch that".
+    provider = result.get("provider")
+    return {"text": (result.get("text") or "").strip(), "provider": provider,
+            "available": provider != "none"}

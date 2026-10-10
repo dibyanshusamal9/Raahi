@@ -7,7 +7,7 @@ A beneficiary calls a number, speaks their answers in their own language,
 and receives three ranked pathways with a spoken reason for each — grounded
 in real NSQF qualifications, real training centres, and real district demand data.
 
-Repo: <https://github.com/Nidhish01/Livelihood-Setu>
+Repo: <https://github.com/dibyanshusamal9/Raahi>
 
 ## Layout
 

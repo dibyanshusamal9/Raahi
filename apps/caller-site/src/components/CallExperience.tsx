@@ -38,6 +38,33 @@ interface CallExperienceProps {
 // Languages whose "{score}%" label is written in their own digits.
 const NATIVE_DIGITS: Record<string, string> = { bn: "beng" };
 
+// RAAHI's voice is recorded by the backend (Sarvam). When it sends no audio
+// for a line (the speech service is down or out of credits), the device's own
+// voice reads the line instead, if the device has one for the call language.
+const SPEECH_LOCALE: Record<string, string> = {
+  en: "en-IN", hi: "hi-IN", bn: "bn-IN", gu: "gu-IN", kn: "kn-IN", ml: "ml-IN",
+  mr: "mr-IN", or: "or-IN", pa: "pa-IN", ta: "ta-IN", te: "te-IN",
+};
+
+function deviceVoice(language: string): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const locale = (SPEECH_LOCALE[language] || language).toLowerCase();
+  const tag = (v: SpeechSynthesisVoice) => v.lang.toLowerCase().replace("_", "-");
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v => tag(v) === locale)
+    || voices.find(v => tag(v).split("-")[0] === locale.split("-")[0])
+    || null;
+}
+
+// Something RAAHI says: a recorded clip, or a line for the device to read.
+type Clip = { url: string } | { text: string };
+
+// The browser's own speech recogniser, if it has one (Chrome, Edge).
+function browserRecognizer(): any {
+  if (typeof window === "undefined") return null;
+  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
+}
+
 // The backend's 0-100 match score, in the language's digits.
 function formatScore(score: number, language: string): string {
   const numbering = NATIVE_DIGITS[language];
@@ -68,13 +95,15 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const micOnRef = useRef(true);
   const callLiveRef = useRef(false);         // connected and not ended
   const processingRef = useRef(false);
   const awaitingAnswerRef = useRef(false);   // RAAHI's last line was a question
   const wantListenRef = useRef(false);       // waiting for the caller's answer
-  const audioQueueRef = useRef<string[]>([]);
+  const audioQueueRef = useRef<Clip[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Speech recognition: the answer is recorded and transcribed by Sarvam.
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -84,6 +113,10 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const vadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // When the speech service can't transcribe (down or out of credits), the
+  // browser's own recogniser takes over for the rest of the call.
+  const browserSttRef = useRef(false);
+  const recognitionRef = useRef<any>(null);
 
   // Ref for auto-scrolling transcript
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -116,6 +149,11 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       try { recorder.stop(); } catch { /* already stopped */ }
     }
     chunksRef.current = [];
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    if (recognition) {
+      try { recognition.abort(); } catch { /* already stopped */ }
+    }
     setIsListening(false);
   };
 
@@ -132,6 +170,10 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
   // and then paused, and have the backend (Sarvam) transcribe it in the
   // caller's own language.
   const startRecording = async () => {
+    if (browserSttRef.current) {
+      startBrowserRecognition();
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
       setMicSupported(false);
       micOnRef.current = false;
@@ -222,8 +264,9 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       }
       setIsTranscribing(true);
       let text = "";
+      let available = true;
       try {
-        text = await transcribeAudio(blob, language);
+        ({ text, available } = await transcribeAudio(blob, language));
       } catch (err) {
         console.error(err);
       } finally {
@@ -232,6 +275,15 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       if (!wantListenRef.current) return;
       if (text) {
         submitAnswerRef.current(text);
+      } else if (!available) {
+        if (browserRecognizer()) {
+          browserSttRef.current = true;
+          startRecordingRef.current();
+          setMicError("Switched to your browser's speech recognition. Please say that again.");
+          setTimeout(() => setMicError(null), 4000);
+        } else {
+          turnMicOff("Voice answers aren't available right now. Please type your reply below.");
+        }
       } else {
         setMicError("Sorry, I didn't catch that. Please say it again, or type below.");
         setTimeout(() => setMicError(null), 4000);
@@ -239,6 +291,50 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       }
     };
     try { recorder.stop(); } catch { /* already stopped */ }
+  };
+
+  // The fallback: the browser recognises one answer in the call's language,
+  // then hands it over like a transcribed recording.
+  const startBrowserRecognition = () => {
+    const Recognition = browserRecognizer();
+    if (!wantListenRef.current || recognitionRef.current) return;
+    if (!Recognition) {
+      turnMicOff("Voice answers aren't available right now. Please type your reply below.");
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.lang = SPEECH_LOCALE[language] || "en-IN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+    let heard = "";
+    recognition.onresult = (e: any) => {
+      heard = (e.results?.[0]?.[0]?.transcript || "").trim();
+    };
+    recognition.onerror = (e: any) => {
+      if (e.error === "no-speech" || e.error === "aborted") return;   // onend listens again
+      recognitionRef.current = null;
+      setIsListening(false);
+      browserSttRef.current = false;
+      turnMicOff(e.error === "not-allowed"
+        ? "Microphone access is blocked. Allow it in your browser, or type your reply below."
+        : "Voice answers aren't available right now. Please type your reply below.");
+    };
+    recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;   // stopped or failed
+      recognitionRef.current = null;
+      setIsListening(false);
+      if (!wantListenRef.current) return;
+      if (heard) submitAnswerRef.current(heard);
+      else setTimeout(() => startRecordingRef.current(), 300);   // silence: keep listening
+    };
+    try {
+      recognition.start();
+      setIsListening(true);
+    } catch {
+      recognitionRef.current = null;
+      turnMicOff("Voice answers aren't available right now. Please type your reply below.");
+    }
   };
 
   const startListening = () => {
@@ -261,16 +357,37 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
   // RAAHI's voice: clips play one after another; when the last one ends and
   // she has asked a question, the mic starts listening.
   const playNext = () => {
-    if (audioRef.current) return;   // already playing
-    const url = audioQueueRef.current.shift();
-    if (!url) {
+    if (audioRef.current || utteranceRef.current) return;   // already speaking
+    const clip = audioQueueRef.current.shift();
+    if (!clip) {
       setIsSpeaking(false);
       if (awaitingAnswerRef.current) startListeningRef.current();
       return;
     }
-    const audio = new Audio(url);
-    audioRef.current = audio;
     setIsSpeaking(true);
+    if ("text" in clip) {
+      const voice = deviceVoice(language);
+      if (!voice) {
+        playNextRef.current();
+        return;
+      }
+      // Said as one word, not spelled out letter by letter.
+      const utterance = new SpeechSynthesisUtterance(clip.text.replace(/RAAHI/g, "Raahi"));
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+      utteranceRef.current = utterance;
+      const spoken = () => {
+        if (utteranceRef.current !== utterance) return;
+        utteranceRef.current = null;
+        playNextRef.current();
+      };
+      utterance.onend = spoken;
+      utterance.onerror = spoken;
+      window.speechSynthesis.speak(utterance);
+      return;
+    }
+    const audio = new Audio(clip.url);
+    audioRef.current = audio;
     const done = () => {
       if (audioRef.current !== audio) return;
       audioRef.current = null;
@@ -289,6 +406,10 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       audio.onended = null;
       audio.onerror = null;
       audio.pause();
+    }
+    if (utteranceRef.current) {
+      utteranceRef.current = null;
+      window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
   };
@@ -335,7 +456,19 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       }
 
       if (res.audio_url) {
-        audioQueueRef.current.push((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + res.audio_url);
+        audioQueueRef.current.push({ url: (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + res.audio_url });
+        setVoiceNotice(null);
+      } else if (line) {
+        // No recording from the server: the device reads the line sentence by
+        // sentence (long utterances get cut off in some browsers), or, with no
+        // voice for this language, the caller is told to read it on screen.
+        if (deviceVoice(language)) {
+          for (const sentence of line.split(/(?<=[.!?।])\s+/)) {
+            if (sentence.trim()) audioQueueRef.current.push({ text: sentence.trim() });
+          }
+        } else {
+          setVoiceNotice("RAAHI's voice isn't available right now. Please read her questions on screen.");
+        }
       }
       playNextRef.current();
     } catch (err) {
@@ -373,9 +506,14 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       wantListenRef.current = false;
       if (vadTimerRef.current) clearInterval(vadTimerRef.current);
       try { recorderRef.current?.stop(); } catch { /* already stopped */ }
+      try { recognitionRef.current?.abort(); } catch { /* already stopped */ }
       streamRef.current?.getTracks().forEach(track => track.stop());
       audioCtxRef.current?.close().catch(() => { /* already closed */ });
       audioRef.current?.pause();
+      if (utteranceRef.current) {
+        utteranceRef.current = null;
+        window.speechSynthesis.cancel();
+      }
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, []);
@@ -384,6 +522,9 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
   useEffect(() => {
     if (typeof window !== "undefined") {
       setReduceMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      // Browsers load their voices lazily; ask now so the fallback voice is
+      // ready by the time RAAHI's welcome arrives.
+      window.speechSynthesis?.getVoices();
     }
 
     if (!isActive) {
@@ -405,6 +546,8 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
       micOnRef.current = true;
       setMicOn(true);
       setMicError(null);
+      setVoiceNotice(null);
+      browserSttRef.current = false;
       return;
     }
 
@@ -683,6 +826,21 @@ export default function CallExperience({ isActive, onClose }: CallExperienceProp
               {/* Bottom Controls */}
               {callState !== "ended" && (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                  {/* RAAHI's voice unavailable */}
+                  <AnimatePresence>
+                    {voiceNotice && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        role="status"
+                        style={{ fontSize: "0.68rem", color: "#fbbf24", textAlign: "center", padding: "0.25rem 0.5rem", background: "rgba(245,158,11,0.1)", borderRadius: "8px", border: "1px solid rgba(245,158,11,0.25)" }}
+                      >
+                        {voiceNotice}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {/* Mic error */}
                   <AnimatePresence>
                     {micError && (

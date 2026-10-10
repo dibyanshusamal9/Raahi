@@ -14,6 +14,8 @@ from ..logging import log
 
 CACHE_DIR = "/tmp/raahi-tts"
 os.makedirs(CACHE_DIR, exist_ok=True)
+# What synthesise() returns when the provider fails: a stand-in, not audio.
+SILENT_FILE = "_silent.wav"
 
 
 SARVAM_TTS_LIMIT = 450        # keep each request well inside the API's input cap
@@ -128,7 +130,7 @@ async def synthesise(text: str, language: str) -> str:
         # single transient failure (no credits, bad speaker) would then be
         # served forever, even after the problem is fixed. Using a separate file
         # means the next call re-hits the API and can succeed.
-        silent = f"{CACHE_DIR}/_silent.wav"
+        silent = f"{CACHE_DIR}/{SILENT_FILE}"
         if not os.path.exists(silent):
             with open(silent, "wb") as f:
                 f.write(b"RIFF\x00\x00\x00\x00WAVEfmt ")

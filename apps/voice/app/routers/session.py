@@ -8,7 +8,7 @@ from ..models.beneficiary import BeneficiaryPatch
 from ..db import (phone_hash, upsert_beneficiary, patch_beneficiary,
                   start_session, record_turn, bump_session, close_session,
                   freeze_recommendation, q)
-from ..services.extractor import extract
+from ..services.extractor import extract, skill_words_in
 from ..services.next_question import pick_next
 from ..services import persona
 from ..services.ranker import recommend, stability_key
@@ -32,6 +32,37 @@ i18n_seed(_QUESTION_SEED)
 
 # Languages whose results message is written natively (no translation).
 COMPOSER_LANGS = tuple(_COMPOSER_TEMPLATES)
+
+# English skill words the ranker searches for (skill_synonyms), loaded once;
+# synonyms added later take effect when the API restarts.
+_SKILL_VOCAB: list[str] | None = None
+
+
+def _skill_vocabulary() -> list[str]:
+    global _SKILL_VOCAB
+    if _SKILL_VOCAB is None:
+        rows = q("select distinct lower(phrase) as p from skill_synonyms "
+                 "where coalesce(lang, 'en') = 'en' and length(phrase) >= 3")
+        _SKILL_VOCAB = [r["p"] for r in rows]
+    return _SKILL_VOCAB
+
+
+async def _english_interests(heard: str, language: str) -> list[str]:
+    """The trade the caller named, in English: the answer is translated to
+    English (any language, even those the rules read natively) and matched
+    against the skill vocabulary the ranker searches. Empty when there is no
+    translation (an English caller, or the translation service is down)."""
+    if (language or "en").lower() in ("en", "en-in"):
+        return []
+    text_en = (await to_english(heard, language, always=True)).strip()
+    if not text_en or text_en == heard.strip():
+        return []
+    words = skill_words_in(text_en, _skill_vocabulary())
+    if not words and len(text_en.split()) <= 4:
+        # A trade the vocabulary doesn't know yet: the course search still
+        # looks for it in course names ("textiles" -> "Textile Dyeing ...").
+        words = [text_en.strip(" .!?।").lower()]
+    return words
 
 
 async def _in_language(line: str, lang: str | None) -> str:
@@ -114,6 +145,15 @@ async def turn(inp: TurnIn) -> TurnOut:
                            done=False, next_question=q_local)
         if patch is not None:
             patch_dict = patch.model_dump(exclude_none=True)
+            # The skill answer: callers name their trade in their own words and
+            # script ("टेक्सटाइल्स", "इलेक्ट्रीशियन"), which no keyword list
+            # fully covers, so it is also translated to English and searched in
+            # the skill vocabulary. The caller's own words are kept as well.
+            if last_q and last_q[0] == "interests":
+                extra = await _english_interests(heard, b["language"])
+                if extra:
+                    patch_dict["interests"] = list(dict.fromkeys(
+                        [*(patch_dict.get("interests") or []), *extra]))
             # Validate before writing: a district we have no data for, or an
             # out-of-range age, is a wrong input — drop it so the field stays
             # unfilled and the caller is asked again with a clear message.

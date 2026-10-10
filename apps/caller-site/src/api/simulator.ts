@@ -46,9 +46,16 @@ export async function sendTurn(
   return res.json();
 }
 
+export interface Transcript {
+  text: string;
+  // false when the speech service itself failed (e.g. out of credits),
+  // as opposed to the caller saying nothing it could make out
+  available: boolean;
+}
+
 // Transcribe one recorded answer on the backend (Sarvam), in the caller's own
 // language and script. Every spoken answer goes through here.
-export async function transcribeAudio(audio: Blob, language: string): Promise<string> {
+export async function transcribeAudio(audio: Blob, language: string): Promise<Transcript> {
   const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const form = new FormData();
   form.append("audio", audio, audio.type.includes("ogg") ? "answer.ogg" : "answer.webm");
@@ -58,5 +65,5 @@ export async function transcribeAudio(audio: Blob, language: string): Promise<st
     throw new Error("Speech recognition failed");
   }
   const data = await res.json();
-  return (data.text || "").trim();
+  return { text: (data.text || "").trim(), available: data.available !== false };
 }

@@ -127,13 +127,14 @@ async def localize(text: str, lang: str) -> str:
 RULE_NATIVE_LANGS = {"en", "hi", "bn", "ta", "mr"}
 
 
-async def to_english(text: str, lang: str) -> str:
+async def to_english(text: str, lang: str, *, always: bool = False) -> str:
     """Translate a caller's answer INTO English. Returns the original text for
-    English / rule-native languages, and on any failure (safe fallback)."""
+    English, for rule-native languages unless `always`, and on any failure
+    (safe fallback)."""
     if not text:
         return text
     lang = (lang or "en").lower()
-    if lang in RULE_NATIVE_LANGS or lang == "en-in":
+    if lang in ("en", "en-in") or (lang in RULE_NATIVE_LANGS and not always):
         return text
 
     src = LANG_TO_SARVAM.get(lang)
