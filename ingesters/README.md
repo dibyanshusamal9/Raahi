@@ -2,10 +2,6 @@
 
 There is **one** ingester: the **Official India Data Pack loader**.
 
-> ⚠️ The web scrapers (`ncs_scraper`, `nsqf_scraper`, `run_weekly`) have been
-> **deleted**. `data/raw/raahi-official-dataset.xlsx` is now the sole source
-> of truth for qualifications.
-
 ## import_official_dataset.py
 
 Bulk-loads the Official India Data Pack workbook into Postgres. Run it once
