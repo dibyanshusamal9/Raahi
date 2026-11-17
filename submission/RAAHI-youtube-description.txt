@@ -1,0 +1,36 @@
+RAAHI: Voice Counsellor for Skill Training in Indian Languages | SIH 2026 Demo
+
+RAAHI is a phone call that helps people choose the right skill course. The caller speaks in their own language, RAAHI asks a few short questions, and then reads out the three courses that fit best, with the nearest training centre and its distance. The details are also sent by SMS or WhatsApp.
+
+Schemes like PM-AJAY fund skill training, but people are rarely helped to choose a course that fits their education, their interests and the jobs in their district. Only about 43% of certified PMKVY 1.0 - 3.0 trainees were placed, and about 35 crore Indians still use feature phones that can't run an app. RAAHI works on any phone, in Indian languages.
+
+In this video:
+- the problem and the RAAHI website
+- a live call in Hindi from Lucknow, from greeting to course suggestions (shown at 1.5x speed)
+- the officer dashboard: what callers ask for compared with local job openings, each caller's record, and adding job openings
+
+Chapters
+0:00 The problem and the RAAHI website
+0:46 How RAAHI helps
+1:07 Demo: a Hindi call to RAAHI (1.5x)
+2:54 RAAHI suggests three courses
+3:53 Officer dashboard: demand vs supply
+4:14 Districts and beneficiaries
+4:28 Why a course was suggested
+4:48 Adding job openings
+5:01 Closing
+
+How it works
+- Sarvam speech-to-text turns the caller's speech into text
+- Rules plus an LLM fill in the profile; each field is checked against what the caller actually said
+- Skill words are translated to English and matched to courses ("बिजली का काम" leads to electrician courses)
+- A fixed SQL score ranks courses: skill match 40%, local job demand 20%, level fit 15%, distance 15%, work preference 10%. The LLM never ranks courses, so the same answers always give the same result.
+- Sarvam text-to-speech reads the result back in the caller's language
+
+Built with: FastAPI, PostgreSQL, Next.js, Sarvam AI. Data: National Qualifications Register courses, training centres, district job openings and PM-AJAY rules, 770 districts loaded.
+
+This is a working prototype. The phone line and WhatsApp are simulated in the demo, and centre and job data are partly sample data.
+
+Team [TEAM NAME] | Problem Statement [PS ID] - [PS TITLE]
+
+#SIH2026 #SmartIndiaHackathon #PMAJAY #SkillIndia #VoiceAI #IndianLanguages

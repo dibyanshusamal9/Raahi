@@ -1,0 +1,23 @@
+RAAHI - a voice counsellor that helps people pick the right skill course and find local work
+
+The problem: PM-AJAY and other schemes pay for skill training, but people are rarely helped to choose the right course. A young person usually joins whatever batch a nearby centre is running, whether or not it fits their education, their interests or the jobs in their district. Only about 43% of certified PMKVY 1.0 - 3.0 trainees were placed. Many of the people these schemes target use feature phones (about 35 crore Indians do) and cannot use an app or a web form. District officers, in turn, cannot easily see what people want to learn compared with the jobs that are open nearby.
+
+Our solution: RAAHI is a phone call. The caller speaks in their own language and RAAHI asks a few short questions: district, age, education, the kind of work they want, near home or in a city, salaried job or own work, and category. It then reads out the three courses that fit best, with the training centre and its distance, and sends the details by SMS or WhatsApp.
+
+How it works:
+- Sarvam speech-to-text turns the caller's speech into text.
+- A profile extractor (rules plus an LLM) fills in the profile. Every field is checked against what the caller actually said, so nothing is guessed.
+- Skill words are translated to English and matched against a synonym list, so "bijli ka kaam" or "मुझे इलेक्ट्रीशियन बनना है" both lead to electrician courses.
+- A fixed SQL score ranks the courses: skill match 40%, local job demand 20%, level fit 15%, distance to centre 15%, work preference 10%. The LLM does not rank courses, so the same answers always give the same result.
+- Each suggestion is stored with its reason and data source. Data older than 180 days is skipped.
+- Sarvam text-to-speech reads the result back. If a voice service is down, the call falls back to rules and the device's own voice instead of failing.
+
+Officer dashboard: for each district, officers see what callers asked for compared with job openings and course seats, each caller's profile and suggestions, enrolment status and an audit log. This lets batches be planned from real demand.
+
+Data: public government data in one PostgreSQL database - NQR qualifications (NSQF level, entry rules), training centres with location, district job openings and wages, PM-AJAY rules and district SC profiles. 770 districts are loaded; adding a district needs data, not code.
+
+What is built: a working prototype with a FastAPI voice backend, PostgreSQL ranker, a caller website with a browser call, and an officer dashboard (Next.js). 35 automated tests pass. In a test Hindi call from Lucknow, "मुझे इलेक्ट्रीशियन बनना है" returned the Electrician course at Lucknow Skill Development Centre, 0.2 km away, plus two electrician courses in Barabanki. The phone line and WhatsApp are simulated in the prototype, and centre and demand data are partly sample data.
+
+Cost and impact: about ₹10 per call, against an average PM-AJAY grant of about ₹69,000 per beneficiary (under 0.02%). Open-source stack, public data, no vendor lock-in. Beneficiaries get personal advice in their language on any phone; officers get a district-level view of demand versus supply; the scheme gets better matching between people, courses and jobs.
+
+Next steps: a real IVR number and WhatsApp Business, live feeds from Skill India Digital and the National Career Service portal, more languages, follow-up calls to track placement, and a pilot in two or three districts.

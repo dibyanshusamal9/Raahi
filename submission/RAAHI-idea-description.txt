@@ -1,0 +1,166 @@
+RAAHI - a voice counsellor that helps people pick the right skill course and find local work
+
+1. THE PROBLEM
+
+Schemes like PM-AJAY fund skill training and livelihood support for Scheduled Caste communities. The money and the training centres are there. What is weak is the step before training: helping a person choose a course that fits them.
+
+Today a young person in a village usually joins whatever course a nearby centre is running that month. Nobody checks whether it matches their education, what they want to do, or whether there are any jobs for that trade in their district. This shows up in the outcomes. Only about 43% of certified PMKVY 1.0 - 3.0 trainees were placed. A large part of that gap comes from the wrong person ending up in the wrong course.
+
+The people these schemes are meant for are also the hardest to reach with apps and portals:
+- About 35 crore Indians still use feature phones. They cannot open a website or install an app.
+- Many are not comfortable reading English, or reading long forms in any language.
+- In-person counselling exists, but there are not enough counsellors to reach every block and gram panchayat.
+
+On the other side, district officers plan training batches mostly from targets. They have no easy way to see what people in their district actually want to learn, or how that compares with the jobs that are open nearby.
+
+So there are two gaps:
+- the beneficiary does not get personal advice in their own language, and
+- the officer does not get a picture of local demand versus local supply.
+
+2. WHAT RAAHI IS
+
+RAAHI is a phone call. The caller speaks in their own language, and RAAHI talks back.
+
+In a few minutes RAAHI asks short, simple questions, one at a time:
+- name
+- district
+- age
+- education (10th, 12th or more)
+- whether they want work close to home or are willing to move to a city
+- what kind of work interests them
+- whether they have a smartphone or a basic phone
+- whether they want a salaried job or their own work
+- category (SC, ST, OBC or General), which decides scheme eligibility
+
+From the answers RAAHI builds a profile. It then picks the three courses that fit best and reads them out: the course name, the sector, the NSQF level, the training centre and how far away it is. The same details are sent by SMS (and WhatsApp if the caller has a smartphone) so they are not lost after the call.
+
+Every call also feeds an officer dashboard. Officers can see, district by district, what people are asking for and how that compares with the courses and job openings available.
+
+3. HOW A CALL WORKS
+
+Step 1 - Listen. The caller's speech is turned into text with Sarvam's speech-to-text model (saaras), which handles Indian languages and mixed speech such as Hindi with English words.
+
+Step 2 - Understand. A profile extractor reads each answer and fills in fields like district, age, education and interests. It uses rules for the common answers (numbers, "12th", district names, "naukri", "shehar mein" and so on) and an LLM for answers the rules cannot handle.
+
+Step 3 - Check. Every field the extractor fills in is checked against what the caller actually said. If the caller never said it, the field is dropped. This stops the LLM from guessing a district or an age that was never mentioned.
+
+Step 4 - Translate the skill words. People describe work in their own words: "bijli ka kaam", "silai", "mujhe electrician banna hai". RAAHI translates the interest answer to English and matches it against a list of skill words and synonyms in English and in Indian scripts. "मुझे इलेक्ट्रीशियन बनना है" becomes "I want to become an electrician", which matches "electrician". If nothing in the list matches, the short translated phrase itself is used for the search.
+
+Step 5 - Rank. A fixed SQL scoring function ranks the courses (details in section 4). The LLM has no part in this step.
+
+Step 6 - Speak. RAAHI reads the top three courses back in the caller's language using Sarvam's text-to-speech (bulbul). If the voice service is down, the web version falls back to the device's own voice and shows the text on screen, so the call does not go silent.
+
+Step 7 - Follow up. The result is sent by SMS / WhatsApp and stored against the caller, with the reason for each course and the data source it came from.
+
+If the caller does not answer a question clearly, RAAHI asks again in simpler words. If an answer is not usable (for example "yes" when asked "smartphone or basic phone?"), it asks the question again rather than guessing.
+
+4. HOW COURSES ARE PICKED
+
+Each course the caller could join gets a score from 0 to 1. The score is a weighted sum of five parts:
+
+- Skill match - 40%. How well the course matches the kind of work the caller asked for.
+- Local demand - 20%. How many job openings there are for that trade in or near the caller's district in the last 90 days.
+- Level fit - 15%. Whether the course's NSQF level and entry rules (minimum class, age range) suit the caller's education and age.
+- Reach - 15%. How far the nearest centre offering the course is from the caller. A centre in the caller's own district scores higher than one 80 km away.
+- Work preference - 10%. Whether the course leads to a salaried job or to self-employment, compared with what the caller wants.
+
+The weights are fixed and written in SQL. This has three effects:
+
+- It is repeatable. The same answers always give the same courses. Nothing changes from one run to the next the way an LLM's output can.
+- It can be audited. An officer or reviewer can see exactly why a course was suggested. Every recommendation is stored with its score, its reason ("matches electrician, centre 0.7 km away, 140 openings in district") and the source and date of the data used.
+- It can be tuned. If a district wants to give more weight to local jobs, that is one number to change, not a model to retrain.
+
+Data older than 180 days is skipped, so RAAHI does not suggest a course or a job opening from stale records.
+
+5. KEEPING THE AI IN CHECK
+
+We use AI where it helps and keep it out where it could do harm.
+
+- The LLM is used only to understand the caller's answers. It never decides which course to suggest.
+- Every field the LLM extracts is checked against the caller's words before it is saved.
+- For the main languages (Hindi, Bengali, Tamil, Marathi and English) the extractor has rules that work without any LLM. If the LLM or the translation service is unavailable, the call still works for common answers.
+- The voice layer degrades instead of failing: browser speech recognition is used if the speech-to-text service is unavailable, and the device voice if text-to-speech is unavailable.
+
+6. DATA
+
+RAAHI is built on public government data, loaded into one PostgreSQL database:
+
+- Qualifications from the National Qualifications Register (NQR): course name, sector, NSQF level, duration, entry age and minimum class, job role and whether it is a self-employment track.
+- Training centres: name, district, state and location (latitude/longitude) so distance can be computed, and the courses each centre offers with next batch date and seats.
+- District job demand: role title, sector, openings in the last 90 days and median wage.
+- Scheme rules for PM-AJAY and district SC population profiles, used for eligibility and for the officer view.
+- A skill synonym list in English and Indian scripts, so local words for a trade map to the right sector.
+
+Every record keeps its source URL and evidence date. Data is re-loaded when the source changes; rows that fail checks are held in a quarantine table instead of being loaded silently.
+
+770 districts are loaded today. Adding a district means adding its data, not writing new code.
+
+7. THE OFFICER DASHBOARD
+
+The dashboard is for district and state officers running PM-AJAY and skill programmes.
+
+- Districts view: for each district, how many people called, what they asked for, and how that compares with the job openings and course seats available. This shows where demand is not being met (many people asking for electrician courses, no electrician batch nearby) and where seats are being filled with courses nobody asked for.
+- Beneficiaries view: each caller's profile, what they said, which courses were suggested and why.
+- Enrolment tracking: whether the caller joined a course, so suggestions can be followed through to training and placement.
+- Audit log: changes to data and records are logged.
+
+8. WHAT IS BUILT AND WORKING TODAY
+
+This is a working prototype, not only a design.
+
+- Voice backend in FastAPI (Python) with the call flow, profile extractor, field checks and translation.
+- PostgreSQL database with the ranking function, qualifications, centres, demand data and synonyms.
+- Caller website (Next.js) with a web call that works in the browser with a microphone.
+- Officer dashboard (Next.js).
+- Sarvam speech-to-text, text-to-speech and translation connected and working.
+- 35 automated tests covering the ranker, the field checks, the extractor and the explanations.
+
+A real test from the prototype: a Hindi call from Lucknow. The caller says "मुझे इलेक्ट्रीशियन बनना है". RAAHI translates it, matches "electrician", and returns:
+1. ELECTRICIAN (Power, NSQF 4) - Lucknow Skill Development Centre, 0.2 km
+2. Construction Electrician-LV (Construction, NSQF 4) - Barabanki, 25.2 km
+3. Electrician Power Distribution (Power, NSQF 4) - Barabanki, 25.2 km
+
+What is still simulated in the prototype:
+- The phone line (IVR) and WhatsApp are simulated. The same call flow runs behind them; connecting a real number is an integration step with a telephony provider.
+- Centre addresses and part of the demand data are sample data for the demo. The structure is the same as the real feeds.
+
+9. FEASIBILITY AND COST
+
+- Running cost is about ₹10 per call (speech-to-text, LLM, text-to-speech and SMS).
+- The average PM-AJAY grant-in-aid release is about ₹69,000 per beneficiary. A call costs under 0.02% of that. If it moves even a small share of people into a course that leads to a job, it pays for itself many times over.
+- The stack is open source (Python, PostgreSQL, Next.js) and the data is public government data. There is no vendor lock-in. The speech provider can be swapped without changing the call flow.
+- The backend does not keep state between requests, so it can be scaled by adding servers.
+- It works on any phone. A feature phone user only needs to dial a number.
+
+10. IMPACT
+
+For the beneficiary:
+- Personal advice in their own language, on any phone, at any time.
+- Three suitable courses with a nearby centre, instead of whatever batch happens to be running.
+- The details on SMS so they can act on them.
+
+For district officers:
+- A live picture of what people in the district want, compared with the courses and jobs on offer.
+- A basis for planning batches from demand instead of from targets alone.
+- A record of who was advised what, and why.
+
+For the ministry and the scheme:
+- Better matching between people, courses and jobs, which is where placement rates are lost today.
+- More value from money that is already being spent on training.
+
+11. RISKS AND HOW WE HANDLE THEM
+
+- Speech is misheard. RAAHI repeats back what it heard (for example "Lucknow - got it") so the caller can correct it, and asks again when an answer is unclear.
+- The LLM makes something up. Extracted fields are checked against the caller's words, and the LLM does not rank courses.
+- Data goes out of date. Every record has an evidence date; anything older than 180 days is not used.
+- A voice service fails. Rules work without the LLM for the main languages, and the web call falls back to the browser's own speech recognition and voice.
+- Privacy. RAAHI asks only for what the scoring needs. The call starts only after the caller agrees to continue. Data is stored in one database under the department's control.
+- Low trust in automated advice. Each suggestion comes with a plain reason and the centre's name and distance, and the officer can see the same reasoning on the dashboard.
+
+12. NEXT STEPS
+
+- Connect a real toll-free IVR number and WhatsApp Business.
+- Replace sample data with live feeds: training centres and batches from Skill India Digital, job openings from the National Career Service portal.
+- Add more Indian languages to the rule-based extractor.
+- A follow-up call after training to record whether the person got a job, so the scoring can be checked against real placement results.
+- Pilot in two or three districts with district officers, then widen.
